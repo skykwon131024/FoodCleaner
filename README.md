@@ -37,7 +37,7 @@
   - `Fetch API` - 백엔드 통신
 
 ### 백엔드
-- **Node.js** (v22 LTS) - 런타임
+- **Node.js** (v22 LTS, 최소 v18) - 런타임
 - **Built-in HTTP 모듈** - 경량 웹 서버
   - 정적 파일 서빙 (HTML, CSS, JS)
   - REST API 엔드포인트 제공
@@ -46,7 +46,7 @@
 ### 클라우드 & AI
 - **Azure App Service** (F1 Free Tier) - 호스팅
 - **Azure OpenAI** - 요리 추천 AI
-  - 모델: GPT-4.1
+  - 배포명: gpt-4.1 (실제 모델은 배포 설정에 따라 결정)
   - API 버전: 2024-10-21
 
 ### DevOps
@@ -81,7 +81,7 @@ vibe_coding 1/
 ## 🚀 시작하기
 
 ### 사전 요구 사항
-- **Node.js** v22 이상
+- **Node.js** v18 이상 (권장: v22 LTS)
 - **Azure 구독** (Azure OpenAI 리소스)
 - **Git** (선택사항)
 
@@ -256,7 +256,7 @@ const response = await fetch(apiUrl, {
 |------|------|
 | **호스팅** | Azure App Service |
 | **가격 계층** | F1 (무료) |
-| **런타임** | Node.js 22 LTS |
+| **런타임** | Node.js 22 LTS (최소 v18) |
 | **지역** | 한국 중부 (Korea Central) |
 | **URL** | https://foodcleaner-33759.azurewebsites.net/ |
 
