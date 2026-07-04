@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>푸드 클리너 - 요리 추천 결과</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <div class="page-title-row">
+      <div>
+        <h1>추천 요리 결과</h1>
+        <p class="subtitle">AI가 선택한 재료 기준으로 추천한 메뉴입니다.</p>
+      </div>
+      <button id="backButton" class="btn" type="button">이전 화면</button>
+    </div>
+
+    <section class="card">
+      <h2>사용한 재료</h2>
+      <div id="ingredientSummary" class="tag-list"></div>
+
+      <h2 class="top-gap">추천 요리</h2>
+      <div id="recipeList" class="recipe-list"></div>
+    </section>
+  </main>
+
+  <script src="recipes.js"></script>
+</body>
+</html>

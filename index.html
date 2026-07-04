@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>푸드 클리너 - 사진 촬영/업로드</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>푸드 클리너</h1>
+    <p class="subtitle">냉장고 사진을 찍거나 앨범에서 선택해 업로드하세요.</p>
+
+    <section class="card">
+      <div class="button-row">
+        <button id="openCameraButton" class="btn primary" type="button">사진 찍기</button>
+        <button id="openGalleryButton" class="btn" type="button">앨범에서 선택</button>
+      </div>
+
+      <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden />
+      <input id="galleryInput" type="file" accept="image/*" hidden />
+
+      <section id="cameraPanel" class="camera-panel" hidden>
+        <video id="cameraVideo" autoplay playsinline muted></video>
+        <canvas id="cameraCanvas" hidden></canvas>
+        <div class="button-row top-gap">
+          <button id="capturePhotoButton" class="btn primary" type="button">촬영</button>
+          <button id="closeCameraButton" class="btn danger" type="button">닫기</button>
+        </div>
+      </section>
+
+      <div id="previewArea" class="preview empty">
+        <p>아직 선택된 이미지가 없습니다.</p>
+      </div>
+
+      <div class="meta" id="metaText">파일 정보 없음</div>
+
+      <div class="button-row">
+        <button id="uploadButton" class="btn success" type="button" disabled>업로드</button>
+        <button id="resetButton" class="btn danger" type="button" disabled>초기화</button>
+      </div>
+
+      <section class="result-box">
+        <h2>자동 인식 결과</h2>
+        <p id="ingredientsText" class="ingredients-empty">아직 인식 결과가 없습니다.</p>
+
+        <div class="edit-row">
+          <input id="ingredientInput" type="text" placeholder="재료 추가 (예: 감자)" />
+          <button id="addIngredientButton" class="btn" type="button">재료 추가</button>
+        </div>
+
+        <div class="count-row">
+          <label for="recipeCountSelect">추천 개수</label>
+          <select id="recipeCountSelect">
+            <option value="3">3개</option>
+            <option value="4">4개</option>
+            <option value="5" selected>5개</option>
+            <option value="6">6개</option>
+            <option value="7">7개</option>
+            <option value="8">8개</option>
+            <option value="9">9개</option>
+            <option value="10">10개</option>
+          </select>
+        </div>
+
+        <div class="button-row top-gap">
+          <button id="recommendButton" class="btn primary" type="button" disabled>요리 추천 받기</button>
+        </div>
+      </section>
+
+      <p id="statusText" class="status">대기 중</p>
+    </section>
+  </main>
+
+  <script src="app.js?v=2"></script>
+</body>
+</html>
