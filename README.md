@@ -78,100 +78,6 @@ vibe_coding 1/
 
 ---
 
-## 🚀 시작하기
-
-### 사전 요구 사항
-- **Node.js** v18 이상 (권장: v22 LTS)
-- **Azure 구독** (Azure OpenAI 리소스)
-- **Git** (선택사항)
-
-### 로컬 설치 및 실행
-
-#### 1. 저장소 클론
-```bash
-git clone https://github.com/skykwon131024/FoodCleaner.git
-cd FoodCleaner
-```
-
-#### 2. 환경 변수 설정
-`.env.example`을 `.env`로 복사하고 Azure OpenAI 자격증명을 입력:
-```bash
-cp .env.example .env
-```
-
-`.env` 파일 내용:
-```
-AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key-here
-AZURE_OPENAI_DEPLOYMENT=gpt-4.1
-AZURE_OPENAI_API_VERSION=2024-10-21
-PORT=3000
-```
-
-#### 3. 서버 실행
-```bash
-node server.js
-```
-
-#### 4. 브라우저 접속
-```
-http://localhost:3000
-```
-
----
-
-## 📡 API 엔드포인트
-
-### POST `/upload`
-**설명:** 업로드된 이미지에서 식재료 인식
-
-**요청:**
-```javascript
-{
-  "image": FormData with image file
-}
-```
-
-**응답:**
-```json
-{
-  "success": true,
-  "ingredients": ["계란", "양파", "우유"],
-  "message": "인식 완료"
-}
-```
-
-### POST `/recommend`
-**설명:** 식재료 기반 요리 추천
-
-**요청:**
-```json
-{
-  "ingredients": ["계란", "양파", "우유"],
-  "desiredCount": 5
-}
-```
-
-**응답:**
-```json
-{
-  "success": true,
-  "recipes": [
-    {
-      "name": "계란 스크램블",
-      "description": "부드러운 우유와 양파가 들어간 기본 스크램블 에그",
-      "time": "15분",
-      "difficulty": "쉬움",
-      "ingredients": ["계란 2개", "양파 1/4개", ...],
-      "steps": ["양파를 잘게 다진다.", "계란을 풀어 섞는다.", ...]
-    },
-    ...
-  ]
-}
-```
-
----
-
 ## 🎨 주요 기능 상세
 
 ### 1. 이미지 업로드 & 식재료 인식
@@ -192,60 +98,6 @@ http://localhost:3000
 ### 4. UI/UX
 - **반응형 디자인** - 모바일/태블릿/데스크톱
 - **클릭 확장:** 레시피 카드를 클릭하면 조리 방법 표시/숨김
-- **실시간 피드백** - 상태 메시지로 진행 상황 표시
-
----
-
-## 🔧 개발 정보
-
-### 주요 기술 구현
-
-#### 1. 카메라 기능 (app.js)
-```javascript
-async function openCameraFlow() {
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal: "environment" } }
-  });
-  cameraVideo.srcObject = stream;
-}
-```
-
-#### 2. 이미지 업로드 (app.js)
-```javascript
-async function uploadSelectedFile() {
-  const formData = new FormData();
-  formData.append("image", selectedFile);
-  const response = await fetch("/upload", { method: "POST", body: formData });
-}
-```
-
-#### 3. 요리 추천 요청 (app.js)
-```javascript
-async function requestRecipeRecommendation() {
-  const body = { ingredients: recognizedIngredients, desiredCount: count };
-  const response = await fetch("/recommend", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-}
-```
-
-#### 4. Azure OpenAI 호출 (server.js)
-```javascript
-const response = await fetch(apiUrl, {
-  method: "POST",
-  headers: {
-    "api-key": process.env.AZURE_OPENAI_API_KEY,
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.7,
-    max_tokens: 2000
-  })
-});
-```
 
 ---
 
@@ -260,33 +112,6 @@ const response = await fetch(apiUrl, {
 | **지역** | 한국 중부 (Korea Central) |
 | **URL** | https://foodcleaner-33759.azurewebsites.net/ |
 
-### 배포 방법
-```bash
-# 1. 배포 파일 생성
-Compress-Archive -Path index.html,recipes.html,app.js,recipes.js,style.css,server.js,package.json -DestinationPath deploy.zip
-
-# 2. Azure에 배포
-az webapp deployment source config-zip --resource-group rg-foodcleaner --name foodcleaner-33759 --src deploy.zip
-```
-
----
-
-## 🔐 보안
-
-### 환경 변수 관리
-- `.env` 파일은 `.gitignore`에 포함 (Git에 업로드 안됨)
-- Azure App Service의 **Application Settings**에서 별도 관리
-- API 키는 클라이언트에 노출 안됨 (서버에서만 처리)
-
-### 정적 파일 서빙
-```javascript
-// 경로 정규화 및 확장자 검증으로 보안 강화
-const normalizedPath = path.normalize(filePath).replace(/\\/g, '/');
-if (!normalizedPath.startsWith('./' ) && !allowedExtensions.includes(ext)) {
-  return res.status(403).end();
-}
-```
-
 ---
 
 ## 📚 사용 방법
@@ -294,26 +119,13 @@ if (!normalizedPath.startsWith('./' ) && !allowedExtensions.includes(ext)) {
 ### 기본 사용 흐름
 1. **페이지 접속** → https://foodcleaner-33759.azurewebsites.net/
 2. **식재료 입력**
-   - 방법 1: "사진 찍기" → 카메라로 촬영 (HTTPS 필요)
+   - 방법 1: "사진 찍기" → 카메라로 촬영 
    - 방법 2: "앨범에서 선택" → 파일 업로드
    - 방법 3: 직접 입력 → "재료 추가" 클릭
 3. **요리 추천 받기** → "요리 추천 받기" 클릭
 4. **결과 확인** → 추천된 요리 목록 표시
 5. **조리 방법 확인** → 레시피 카드 클릭 → 재료 & 조리 방법 확인
 
----
-
-## 🐛 알려진 이슈
-
-### 1. 로컬 카메라 권한
-- **증상:** localhost에서 "사진 찍기" 버튼이 작동 안 함
-- **원인:** 카메라는 HTTPS 보안 연결에서만 작동
-- **해결:** Azure 배포 버전 사용 (HTTPS)
-
-### 2. API 응답 시간
-- **증상:** 요리 추천이 느림
-- **원인:** Azure OpenAI API 처리 시간
-- **해결:** 보통 3~5초 소요 (정상)
 
 ---
 
@@ -325,8 +137,8 @@ if (!normalizedPath.startsWith('./' ) && !allowedExtensions.includes(ext)) {
 
 ## 👨‍💻 개발자 정보
 
-- **이름:** Ethan
-- **프로젝트 기간:** 2026년 6월~7월
+- **이름:** 권정범
+- **프로젝트 기간:** 2026년 6월 1주~4주
 - **GitHub:** [skykwon131024](https://github.com/skykwon131024)
 
 ---
