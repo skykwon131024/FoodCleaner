@@ -475,6 +475,8 @@ async function recommendRecipesWithAi(ingredients, desiredCount, preferences) {
     `선호 맵기: ${spicinessPreference}`,
     `조리 가능 시간: ${cookingTimePreference}`,
     "사용자가 입력한 음식 종류, 스타일, 맵기와 시간은 메뉴 선택 조건으로만 해석하라.",
+    "각 레시피에는 현재 보유한 재료뿐 아니라 요리에 필요한 전체 재료를 빠짐없이 포함하라. 보유하지 않은 필수 재료도 절대 생략하지 마라.",
+    "필수 재료는 requiredIngredients 배열에 전부 작성하고, 선택 재료나 선택 양념만 optionalIngredients 배열로 분리하라.",
     "time은 재료 손질 시간과 실제 조리 시간을 합산한 총 예상 시간이며 분 단위로 표시하라.",
     ...(preferences.timeLimitMinutes === null
       ? []
@@ -485,7 +487,7 @@ async function recommendRecipesWithAi(ingredients, desiredCount, preferences) {
     "선택된 취향을 가능한 한 우선 반영하고, 선택하지 않은 항목은 제한으로 적용하지 마라.",
     "반드시 JSON만 반환하라.",
     "각 레시피에 재료 목록(ingredients)과 조리 순서(steps)를 반드시 포함하라.",
-    `형식: {\"recipes\":[{\"name\":\"\",\"description\":\"\",\"time\":\"15분\",\"difficulty\":\"쉬움\",\"ingredients\":[\"계란 2개\"],\"steps\":[\"재료를 손질한다\",\"팬에 볶는다\"]}]} (recipes 길이 정확히 ${desiredCount})`,
+    `형식: {\"recipes\":[{\"name\":\"\",\"description\":\"\",\"time\":\"15분\",\"difficulty\":\"쉬움\",\"ingredients\":[\"계란 2개\",\"밀가루 1컵\"],\"requiredIngredients\":[\"계란 2개\",\"밀가루 1컵\"],\"optionalIngredients\":[\"파슬리 약간\"],\"steps\":[\"재료를 손질한다\",\"팬에 볶는다\"]}]} (recipes 길이 정확히 ${desiredCount})`,
   ].join(" ");
 
   const content = await callOpenAi([{ type: "text", text: prompt }]);
@@ -710,13 +712,17 @@ function normalizeRecipe(recipe, availableIngredients = []) {
   const baseIngredients = Array.isArray(recipe.ingredients)
     ? recipe.ingredients.filter((item) => typeof item === "string" && item.trim())
     : [];
+  const providedRequiredIngredients = Array.isArray(recipe.requiredIngredients)
+    ? recipe.requiredIngredients.filter((item) => typeof item === "string" && item.trim())
+    : [];
+  const requiredIngredients = providedRequiredIngredients.length ? providedRequiredIngredients : baseIngredients;
 
   const baseSteps = Array.isArray(recipe.steps)
     ? recipe.steps.filter((item) => typeof item === "string" && item.trim())
     : [];
 
   const description = String(recipe.description || "설명 없음");
-  const ingredientUtilization = calculateIngredientUtilization(baseIngredients, availableIngredients);
+  const ingredientUtilization = calculateIngredientUtilization(requiredIngredients, availableIngredients);
 
   return {
     name: String(recipe.name || "이름 없는 요리"),
@@ -724,7 +730,12 @@ function normalizeRecipe(recipe, availableIngredients = []) {
     time: String(recipe.time || "미정"),
     difficulty: String(recipe.difficulty || "미정"),
     ...ingredientUtilization,
-    ingredients: baseIngredients.length ? baseIngredients : ["기본 재료", "소금 약간"],
+    requiredIngredients,
+    ingredients: baseIngredients.length
+      ? baseIngredients
+      : requiredIngredients.length
+        ? requiredIngredients
+        : ["기본 재료", "소금 약간"],
     steps: baseSteps.length
       ? baseSteps
       : [
