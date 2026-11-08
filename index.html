@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>푸드 클리너 - 사진 촬영/업로드</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <main class="container">
@@ -12,66 +12,187 @@
     <p class="subtitle">냉장고 사진을 찍거나 앨범에서 선택해 업로드하세요.</p>
 
     <section class="card">
-      <div class="button-row">
-        <button id="openCameraButton" class="btn primary" type="button">사진 찍기</button>
-        <button id="openGalleryButton" class="btn" type="button">앨범에서 선택</button>
-      </div>
+        <div class="button-row">
+          <button id="openCameraButton" class="btn primary" type="button">사진 찍기</button>
+          <button id="openGalleryButton" class="btn" type="button">앨범에서 선택</button>
+        </div>
 
-      <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden />
-      <input id="galleryInput" type="file" accept="image/*" hidden />
+        <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden />
+        <input id="galleryInput" type="file" accept="image/*" hidden />
 
-      <section id="cameraPanel" class="camera-panel" hidden>
-        <video id="cameraVideo" autoplay playsinline muted></video>
-        <canvas id="cameraCanvas" hidden></canvas>
-        <div class="button-row top-gap">
-          <button id="capturePhotoButton" class="btn primary" type="button">촬영</button>
-          <button id="closeCameraButton" class="btn danger" type="button">닫기</button>
+        <section id="cameraPanel" class="camera-panel" hidden>
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <canvas id="cameraCanvas" hidden></canvas>
+          <div class="button-row top-gap">
+            <button id="capturePhotoButton" class="btn primary" type="button">촬영</button>
+            <button id="closeCameraButton" class="btn danger" type="button">닫기</button>
+          </div>
+        </section>
+
+        <div id="previewArea" class="preview empty">
+          <p>아직 선택된 이미지가 없습니다.</p>
+        </div>
+
+        <div class="meta" id="metaText">파일 정보 없음</div>
+
+        <div class="button-row compact-row">
+          <button id="uploadButton" class="btn success" type="button" disabled>업로드</button>
+          <button id="resetButton" class="btn danger" type="button" disabled>초기화</button>
+        </div>
+
+        <section class="result-box">
+          <h2>자동 인식 결과</h2>
+          <p id="ingredientsText" class="ingredients-empty">아직 인식 결과가 없습니다.</p>
+
+          <div class="edit-row">
+            <input id="ingredientInput" type="text" placeholder="재료 추가 (예: 감자)" />
+            <button id="addIngredientButton" class="btn" type="button">재료 추가</button>
+          </div>
+
+          <section class="taste-preferences" aria-labelledby="tastePreferencesTitle">
+            <h3 id="tastePreferencesTitle">원하는 요리 조건</h3>
+            <p class="taste-hint">음식 종류, 스타일, 맵기와 조리 시간을 직접 입력하세요.</p>
+            <div class="taste-fields">
+              <div class="taste-field">
+                <label for="cuisinePreferenceInput">음식 종류</label>
+                <input id="cuisinePreferenceInput" type="text" maxlength="100" placeholder="예: 한식, 태국 음식" />
+              </div>
+              <div class="taste-field">
+                <label for="stylePreferenceInput">요리 스타일</label>
+                <input id="stylePreferenceInput" type="text" maxlength="100" placeholder="예: 간단하고 건강한 요리" />
+              </div>
+              <div class="taste-field">
+                <label for="spicinessPreferenceInput">맵기</label>
+                <input id="spicinessPreferenceInput" type="text" maxlength="100" placeholder="예: 순한 맛, 보통, 아주 매운맛" />
+              </div>
+              <div class="taste-field">
+                <label for="cookingTimePreferenceInput">조리 가능 시간</label>
+                <input id="cookingTimePreferenceInput" type="text" maxlength="100" placeholder="예: 20분, 1시간, 제한 없음" />
+              </div>
+            </div>
+          </section>
+
+          <div class="count-row">
+            <label for="recipeCountSelect">추천 개수</label>
+            <select id="recipeCountSelect">
+              <option value="3">3개</option>
+              <option value="4">4개</option>
+              <option value="5" selected>5개</option>
+              <option value="6">6개</option>
+              <option value="7">7개</option>
+              <option value="8">8개</option>
+              <option value="9">9개</option>
+              <option value="10">10개</option>
+            </select>
+          </div>
+
+          <div class="button-row top-gap">
+            <button id="recommendButton" class="btn primary" type="button" disabled>요리 추천 받기</button>
+          </div>
+        </section>
+
+        <p id="statusText" class="status">대기 중</p>
+      </section>
+
+      <section class="phone-card recommendation-panel card" aria-hidden="true">
+        <header class="panel-header">
+          <div class="panel-brand">
+            <span class="panel-icon">🤖</span>
+            <div>
+              <p class="panel-kicker">AI 추천 목록</p>
+              <strong>Food Cleaner</strong>
+            </div>
+          </div>
+          <button class="header-action" type="button">⚙️</button>
+        </header>
+
+        <div class="suggestion-stack">
+          <article class="mini-recipe-card active">
+            <div class="mini-photo photo-a"></div>
+            <div class="mini-copy">
+              <div class="meta-row">
+                <span class="chip success">15분</span>
+                <span class="chip neutral">쉬움</span>
+              </div>
+              <h3>애호박 감자 고추장찌개</h3>
+            </div>
+          </article>
+
+          <article class="mini-recipe-card">
+            <div class="mini-photo photo-b"></div>
+            <div class="mini-copy">
+              <div class="meta-row">
+                <span class="chip success">18분</span>
+                <span class="chip neutral">보통</span>
+              </div>
+              <h3>고소한 감자 전</h3>
+            </div>
+          </article>
+
+          <article class="mini-recipe-card">
+            <div class="mini-photo photo-c"></div>
+            <div class="mini-copy">
+              <div class="meta-row">
+                <span class="chip success">12분</span>
+                <span class="chip neutral">쉬움</span>
+              </div>
+              <h3>계란 샐러드</h3>
+            </div>
+          </article>
         </div>
       </section>
 
-      <div id="previewArea" class="preview empty">
-        <p>아직 선택된 이미지가 없습니다.</p>
-      </div>
+      <section class="phone-card detail-panel card" aria-hidden="true">
+        <header class="panel-header">
+          <div class="panel-brand">
+            <span class="panel-icon">📖</span>
+            <div>
+              <p class="panel-kicker">Recipe Detail</p>
+              <strong>애호박 감자 고추장찌개</strong>
+            </div>
+          </div>
+          <button class="header-action" type="button">♡</button>
+        </header>
 
-      <div class="meta" id="metaText">파일 정보 없음</div>
+        <div class="detail-hero photo-d"></div>
 
-      <div class="button-row">
-        <button id="uploadButton" class="btn success" type="button" disabled>업로드</button>
-        <button id="resetButton" class="btn danger" type="button" disabled>초기화</button>
-      </div>
-
-      <section class="result-box">
-        <h2>자동 인식 결과</h2>
-        <p id="ingredientsText" class="ingredients-empty">아직 인식 결과가 없습니다.</p>
-
-        <div class="edit-row">
-          <input id="ingredientInput" type="text" placeholder="재료 추가 (예: 감자)" />
-          <button id="addIngredientButton" class="btn" type="button">재료 추가</button>
+        <div class="detail-meta">
+          <div class="meta-row align-start">
+            <span class="chip success">15분</span>
+            <span class="chip neutral">쉬움</span>
+            <span class="chip neutral">저염</span>
+          </div>
+          <h3>애호박 감자 고추장찌개</h3>
+          <p>감자와 애호박을 함께 넣어 고소하고 든든한 한 끼를 완성하는 조리법입니다.</p>
         </div>
 
-        <div class="count-row">
-          <label for="recipeCountSelect">추천 개수</label>
-          <select id="recipeCountSelect">
-            <option value="3">3개</option>
-            <option value="4">4개</option>
-            <option value="5" selected>5개</option>
-            <option value="6">6개</option>
-            <option value="7">7개</option>
-            <option value="8">8개</option>
-            <option value="9">9개</option>
-            <option value="10">10개</option>
-          </select>
+        <div class="ingredient-summary">
+          <h4>필요한 재료</h4>
+          <ul>
+            <li>애호박 1개</li>
+            <li>감자 2개</li>
+            <li>고추장 1스푼</li>
+            <li>양파 1/2개</li>
+          </ul>
         </div>
 
-        <div class="button-row top-gap">
-          <button id="recommendButton" class="btn primary" type="button" disabled>요리 추천 받기</button>
+        <div class="step-list">
+          <div class="step-item">
+            <span class="step-no">1</span>
+            <p>감자를 얇게 썰어 물에 살짝 데친 뒤 준비합니다.</p>
+          </div>
+          <div class="step-item">
+            <span class="step-no">2</span>
+            <p>양파와 애호박을 넣고 물과 고추장을 섞어 끓입니다.</p>
+          </div>
+          <div class="step-item">
+            <span class="step-no">3</span>
+            <p>마지막에 참기름을 두르고 간을 맞춰 완성합니다.</p>
+          </div>
         </div>
       </section>
-
-      <p id="statusText" class="status">대기 중</p>
-    </section>
   </main>
 
-  <script src="app.js?v=2"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>

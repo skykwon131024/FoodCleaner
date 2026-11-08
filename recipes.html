@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>푸드 클리너 - 요리 추천 결과</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <main class="container">
@@ -16,15 +16,33 @@
       <button id="backButton" class="btn" type="button">이전 화면</button>
     </div>
 
-    <section class="card">
+    <section class="card results-panel">
       <h2>사용한 재료</h2>
       <div id="ingredientSummary" class="tag-list"></div>
 
       <h2 class="top-gap">추천 요리</h2>
+      <div class="recipe-controls">
+        <label class="recipe-control" for="utilizationFilter">
+          활용률 기준
+          <select id="utilizationFilter">
+            <option value="0">전체</option>
+            <option value="60">60% 이상</option>
+            <option value="80">80% 이상</option>
+            <option value="100">100%</option>
+          </select>
+        </label>
+        <label class="recipe-control" for="recipeSortSelect">
+          정렬
+          <select id="recipeSortSelect">
+            <option value="utilization">활용률 높은 순</option>
+            <option value="time">조리 시간 빠른 순</option>
+          </select>
+        </label>
+      </div>
       <div id="recipeList" class="recipe-list"></div>
     </section>
   </main>
 
-  <script src="recipes.js"></script>
+  <script src="recipes.js?v=2"></script>
 </body>
 </html>

@@ -127,7 +127,8 @@ function resetSelection() {
 
 async function openCameraFlow() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    setStatus("이 브라우저는 카메라 촬영을 지원하지 않습니다. 앨범에서 선택을 사용해 주세요.", true);
+    cameraInput.click();
+    setStatus("직접 카메라를 열 수 없어 기기 카메라 선택창으로 전환했습니다.", false);
     return;
   }
 
@@ -139,10 +140,19 @@ async function openCameraFlow() {
     });
 
     cameraVideo.srcObject = activeCameraStream;
+    await cameraVideo.play().catch(() => {});
     cameraPanel.hidden = false;
     setStatus("카메라가 켜졌습니다. 촬영 버튼을 눌러주세요.", false);
   } catch (error) {
-    setStatus("카메라 접근이 거부되었습니다. 브라우저 주소창의 카메라 권한을 허용해 주세요.", true);
+    const errorName = error && error.name ? error.name : "UnknownError";
+
+    if (errorName === "NotAllowedError" || errorName === "SecurityError") {
+      setStatus("카메라 권한이 거부되었습니다. 권한 허용 후 다시 시도하거나 앨범 선택을 이용해 주세요.", true);
+      return;
+    }
+
+    cameraInput.click();
+    setStatus("실시간 카메라를 열지 못해 기기 카메라 선택창으로 전환했습니다.", false);
   }
 }
 
@@ -273,6 +283,15 @@ function addIngredientFromInput() {
   renderIngredients(recognizedIngredients);
 }
 
+function collectTastePreferences() {
+  const cuisine = document.getElementById("cuisinePreferenceInput").value.trim();
+  const style = document.getElementById("stylePreferenceInput").value.trim();
+  const spiciness = document.getElementById("spicinessPreferenceInput").value.trim();
+  const cookingTime = document.getElementById("cookingTimePreferenceInput").value.trim();
+
+  return { cuisine, style, spiciness, cookingTime };
+}
+
 async function requestRecipeRecommendation() {
   if (!recognizedIngredients.length) {
     setStatus("추천 전에 재료를 1개 이상 준비해 주세요.", true);
@@ -293,6 +312,7 @@ async function requestRecipeRecommendation() {
       body: JSON.stringify({
         ingredients: recognizedIngredients,
         desiredCount,
+        preferences: collectTastePreferences(),
       }),
     });
 
