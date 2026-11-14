@@ -972,6 +972,13 @@ h1 {
   outline: 3px solid rgba(11, 110, 243, 0.18);
 }
 
+.taste-safety-note {
+  margin: 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 .taste-group {
   min-width: 0;
   margin: 0;

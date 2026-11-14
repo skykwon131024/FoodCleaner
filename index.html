@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>푸드 클리너 - 사진 촬영/업로드</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
   <main class="container">
@@ -69,7 +69,16 @@
                 <label for="cookingTimePreferenceInput">조리 가능 시간</label>
                 <input id="cookingTimePreferenceInput" type="text" maxlength="100" placeholder="예: 20분, 1시간, 제한 없음" />
               </div>
+              <div class="taste-field">
+                <label for="allergyPreferenceInput">알레르기·피해야 할 재료</label>
+                <input id="allergyPreferenceInput" type="text" maxlength="100" placeholder="예: 땅콩, 우유, 새우" />
+              </div>
+              <div class="taste-field">
+                <label for="dietaryRestrictionsInput">식단 제한</label>
+                <input id="dietaryRestrictionsInput" type="text" maxlength="100" placeholder="예: 채식, 비건, 글루텐프리" />
+              </div>
             </div>
+            <p class="taste-safety-note">알레르기 필터는 입력한 정보를 기준으로 레시피를 제외합니다. 교차 오염이나 제품별 성분까지 보장하지 않으므로 조리 전 원재료 표시를 확인하세요.</p>
           </section>
 
           <div class="count-row">
@@ -193,6 +202,6 @@
       </section>
   </main>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>

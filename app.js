@@ -288,8 +288,10 @@ function collectTastePreferences() {
   const style = document.getElementById("stylePreferenceInput").value.trim();
   const spiciness = document.getElementById("spicinessPreferenceInput").value.trim();
   const cookingTime = document.getElementById("cookingTimePreferenceInput").value.trim();
+  const allergies = document.getElementById("allergyPreferenceInput").value.trim();
+  const dietaryRestrictions = document.getElementById("dietaryRestrictionsInput").value.trim();
 
-  return { cuisine, style, spiciness, cookingTime };
+  return { cuisine, style, spiciness, cookingTime, allergies, dietaryRestrictions };
 }
 
 async function requestRecipeRecommendation() {

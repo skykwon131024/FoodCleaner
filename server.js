@@ -19,6 +19,18 @@ const SUPPORTED_STYLES = [
   "매콤한 요리",
   "색다르고 특별한 요리",
 ];
+const RESTRICTION_GROUPS = {
+  "견과류": ["땅콩", "호두", "아몬드", "캐슈넛", "피스타치오", "헤이즐넛", "잣", "마카다미아"],
+  "갑각류": ["새우", "게", "꽃게", "랍스터", "가재"],
+  "해산물": ["생선", "멸치", "새우", "게", "조개", "굴", "오징어", "문어", "액젓", "젓갈"],
+  "유제품": ["우유", "치즈", "버터", "생크림", "요거트", "요구르트", "연유", "분유"],
+  "글루텐": ["밀", "밀가루", "보리", "호밀", "빵", "면", "국수", "파스타"],
+  "육류": ["소고기", "쇠고기", "돼지고기", "닭고기", "오리고기", "양고기", "햄", "베이컨", "소시지", "고기", "육수", "사골"],
+  "채식": ["육류", "해산물"],
+  "비건": ["채식", "계란", "달걀", "유제품", "꿀", "젤라틴"],
+  "글루텐프리": ["글루텐"],
+  "유당불내증": ["유제품"],
+};
 const INGREDIENT_SUBSTITUTIONS = {
   "간장": ["소금"],
   "감자": ["고구마"],
@@ -474,6 +486,9 @@ async function recommendRecipesWithAi(ingredients, desiredCount, preferences) {
     `선호 요리 스타일: ${stylePreference}`,
     `선호 맵기: ${spicinessPreference}`,
     `조리 가능 시간: ${cookingTimePreference}`,
+    `알레르기·피해야 할 재료: ${preferences.allergies ? JSON.stringify(preferences.allergies) : "없음"}`,
+    `식단 제한: ${preferences.dietaryRestrictions ? JSON.stringify(preferences.dietaryRestrictions) : "없음"}`,
+    "알레르기 재료와 식단 제한에 해당하는 재료는 필수 재료, 선택 재료, 소스, 고명과 조리 순서를 포함한 레시피 전체에서 제외하라.",
     "사용자가 입력한 음식 종류, 스타일, 맵기와 시간은 메뉴 선택 조건으로만 해석하라.",
     "각 레시피에는 현재 보유한 재료뿐 아니라 요리에 필요한 전체 재료를 빠짐없이 포함하라. 보유하지 않은 필수 재료도 절대 생략하지 마라.",
     "필수 재료는 requiredIngredients 배열에 전부 작성하고, 선택 재료나 선택 양념만 optionalIngredients 배열로 분리하라.",
@@ -493,10 +508,10 @@ async function recommendRecipesWithAi(ingredients, desiredCount, preferences) {
   const content = await callOpenAi([{ type: "text", text: prompt }]);
   const parsed = parseJsonFromText(content);
   const recipes = Array.isArray(parsed.recipes) ? parsed.recipes : [];
-  const timeFilteredRecipes = filterRecipesByTime(
-    recipes.map((recipe) => normalizeRecipe(recipe, ingredients)),
-    preferences.timeLimitMinutes,
-  );
+  const safeRecipes = recipes
+    .map((recipe) => normalizeRecipe(recipe, ingredients))
+    .filter((recipe) => matchesSafetyPreferences(recipe, preferences));
+  const timeFilteredRecipes = filterRecipesByTime(safeRecipes, preferences.timeLimitMinutes);
   const orderedRecipes = shouldPrioritizeQuickly(preferences)
     ? sortRecipesByTime(timeFilteredRecipes)
     : timeFilteredRecipes;
@@ -509,12 +524,16 @@ function normalizePreferences(value) {
   const style = normalizePreferenceText(value?.style);
   const spiciness = normalizePreferenceText(value?.spiciness);
   const cookingTime = normalizePreferenceText(value?.cookingTime);
+  const allergies = normalizePreferenceText(value?.allergies);
+  const dietaryRestrictions = normalizePreferenceText(value?.dietaryRestrictions);
 
   return {
     cuisine,
     style,
     spiciness,
     cookingTime,
+    allergies,
+    dietaryRestrictions,
     timeLimitMinutes: parseCookingTimeLimit(cookingTime),
   };
 }
@@ -556,7 +575,72 @@ function matchesPreferences(recipe, preferences) {
   const matchesStyle = !requestedStyles.length || requestedStyles.some((style) => recipe.styles.includes(style));
   const matchesSpiciness = matchesSpicinessPreference(recipe, preferences.spiciness);
 
-  return matchesCuisine && matchesStyle && matchesSpiciness;
+  return matchesCuisine && matchesStyle && matchesSpiciness && matchesSafetyPreferences(recipe, preferences);
+}
+
+function parseRestrictionTerms(value) {
+  return String(value || "")
+    .toLowerCase()
+    .split(/[,，、;\n]+/)
+    .map((term) => term
+      .replace(/알레르기|알러지|제외|피함|빼고|없이|금지|못\s*먹(?:음|어요)?/g, "")
+      .replace(/\s+/g, "")
+      .trim())
+    .filter(Boolean);
+}
+
+function expandRestrictionTerms(terms) {
+  const expanded = new Set();
+  const addTerm = (term) => {
+    const relatedTerms = RESTRICTION_GROUPS[term];
+    if (relatedTerms) {
+      relatedTerms.forEach(addTerm);
+    } else {
+      expanded.add(term);
+    }
+  };
+
+  terms.forEach(addTerm);
+  return [...expanded];
+}
+
+function getDietaryRestrictionTerms(value) {
+  const normalized = String(value || "").toLowerCase().replace(/\s+/g, "");
+  const terms = parseRestrictionTerms(value);
+
+  if (/비건|완전채식|vegan/.test(normalized)) {
+    terms.push("비건");
+  } else if (/채식|베지테리언|vegetarian/.test(normalized)) {
+    terms.push("채식");
+  }
+  if (/글루텐프리|glutenfree/.test(normalized)) {
+    terms.push("글루텐프리");
+  }
+  if (/유제품프리|유제품제외|유당불내증|dairyfree/.test(normalized)) {
+    terms.push("유당불내증");
+  }
+
+  return expandRestrictionTerms(terms);
+}
+
+function matchesSafetyPreferences(recipe, preferences) {
+  const allergyTerms = expandRestrictionTerms(parseRestrictionTerms(preferences.allergies));
+  const dietaryTerms = getDietaryRestrictionTerms(preferences.dietaryRestrictions);
+  const restrictedTerms = [...new Set([...allergyTerms, ...dietaryTerms])];
+  if (!restrictedTerms.length) {
+    return true;
+  }
+
+  const recipeText = [
+    recipe.name,
+    recipe.description,
+    ...(Array.isArray(recipe.ingredients) ? recipe.ingredients : []),
+    ...(Array.isArray(recipe.requiredIngredients) ? recipe.requiredIngredients : []),
+    ...(Array.isArray(recipe.optionalIngredients) ? recipe.optionalIngredients : []),
+    ...(Array.isArray(recipe.steps) ? recipe.steps : []),
+  ].join(" ").toLowerCase().replace(/\s+/g, "");
+
+  return !restrictedTerms.some((term) => recipeText.includes(term));
 }
 
 function matchesSpicinessPreference(recipe, preference) {
@@ -716,6 +800,9 @@ function normalizeRecipe(recipe, availableIngredients = []) {
     ? recipe.requiredIngredients.filter((item) => typeof item === "string" && item.trim())
     : [];
   const requiredIngredients = providedRequiredIngredients.length ? providedRequiredIngredients : baseIngredients;
+  const optionalIngredients = Array.isArray(recipe.optionalIngredients)
+    ? recipe.optionalIngredients.filter((item) => typeof item === "string" && item.trim())
+    : [];
 
   const baseSteps = Array.isArray(recipe.steps)
     ? recipe.steps.filter((item) => typeof item === "string" && item.trim())
@@ -731,6 +818,7 @@ function normalizeRecipe(recipe, availableIngredients = []) {
     difficulty: String(recipe.difficulty || "미정"),
     ...ingredientUtilization,
     requiredIngredients,
+    optionalIngredients,
     ingredients: baseIngredients.length
       ? baseIngredients
       : requiredIngredients.length

@@ -9,6 +9,7 @@ const clearCompletedShoppingButton = document.getElementById("clearCompletedShop
 const shoppingListStorageKey = "foodCleanerShoppingList";
 let shoppingItems = loadShoppingItems();
 let allRecipes = [];
+let activePreferences = {};
 
 utilizationFilter.addEventListener("change", renderRecipeCards);
 recipeSortSelect.addEventListener("change", renderRecipeCards);
@@ -48,6 +49,7 @@ function renderIngredientSummary(ingredients) {
 
 function renderRecipes(recipes, preferences) {
   allRecipes = Array.isArray(recipes) ? recipes : [];
+  activePreferences = preferences || {};
   recipeSortSelect.value = preferences.timeLimitMinutes !== null && preferences.timeLimitMinutes <= 20
     ? "time"
     : "utilization";
@@ -68,7 +70,11 @@ function renderRecipeCards() {
 
   recipeList.innerHTML = "";
   if (!recipes.length) {
-    recipeList.innerHTML = "<p class=\"ingredients-empty\">선택한 활용률 기준에 맞는 요리가 없습니다.</p>";
+    const hasSafetyRestriction = activePreferences.allergies || activePreferences.dietaryRestrictions;
+    const noRecipeMessage = allRecipes.length === 0 && hasSafetyRestriction
+      ? "알레르기·식단 제한을 적용한 추천 결과가 없습니다. 입력한 조건을 확인하거나 다른 재료를 사용해 보세요."
+      : "선택한 활용률 기준에 맞는 요리가 없습니다.";
+    recipeList.innerHTML = `<p class=\"ingredients-empty\">${noRecipeMessage}</p>`;
     return;
   }
 
