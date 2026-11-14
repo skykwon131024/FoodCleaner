@@ -3,16 +3,23 @@ const ingredientSummary = document.getElementById("ingredientSummary");
 const recipeList = document.getElementById("recipeList");
 const utilizationFilter = document.getElementById("utilizationFilter");
 const recipeSortSelect = document.getElementById("recipeSortSelect");
+const shoppingListItems = document.getElementById("shoppingListItems");
+const shoppingListCount = document.getElementById("shoppingListCount");
+const clearCompletedShoppingButton = document.getElementById("clearCompletedShoppingButton");
+const shoppingListStorageKey = "foodCleanerShoppingList";
+let shoppingItems = loadShoppingItems();
 let allRecipes = [];
 
 utilizationFilter.addEventListener("change", renderRecipeCards);
 recipeSortSelect.addEventListener("change", renderRecipeCards);
+clearCompletedShoppingButton.addEventListener("click", clearCompletedShoppingItems);
 
 backButton.addEventListener("click", () => {
   window.location.href = "index.html";
 });
 
 function loadData() {
+  renderShoppingList();
   const raw = sessionStorage.getItem("foodCleanerRecommendations");
   if (!raw) {
     recipeList.innerHTML = "<p class=\"ingredients-empty\">추천 데이터가 없습니다. 이전 화면에서 다시 시도해 주세요.</p>";
@@ -117,6 +124,18 @@ function renderRecipeCards() {
       ingredientStatus.appendChild(substituteLine);
     });
 
+    if (missingIngredients.length) {
+      const addMissingIngredientsButton = document.createElement("button");
+      addMissingIngredientsButton.type = "button";
+      addMissingIngredientsButton.className = "btn shopping-list-action";
+      addMissingIngredientsButton.textContent = "부족 재료 장보기 목록에 담기";
+      addMissingIngredientsButton.addEventListener("click", (event) => {
+        event.stopPropagation();
+        addMissingIngredientsToShoppingList(recipe);
+      });
+      ingredientStatus.appendChild(addMissingIngredientsButton);
+    }
+
     const hint = document.createElement("p");
     hint.className = "recipe-hint";
     hint.textContent = "레시피를 클릭하면 조리방법을 볼 수 있습니다.";
@@ -173,6 +192,127 @@ function getRecipeTimeMinutes(value) {
   const hours = Number(time.match(/(\d+)\s*시간/)?.[1] || 0);
   const minutes = Number(time.match(/(\d+)\s*분/)?.[1] || 0);
   return hours * 60 + minutes || Number.POSITIVE_INFINITY;
+}
+
+function loadShoppingItems() {
+  try {
+    const storedItems = JSON.parse(localStorage.getItem(shoppingListStorageKey) || "[]");
+    if (!Array.isArray(storedItems)) {
+      return [];
+    }
+
+    return storedItems.filter((item) => item && typeof item.key === "string" && typeof item.name === "string");
+  } catch {
+    return [];
+  }
+}
+
+function saveShoppingItems() {
+  localStorage.setItem(shoppingListStorageKey, JSON.stringify(shoppingItems));
+  renderShoppingList();
+}
+
+function splitShoppingIngredient(value) {
+  const ingredient = String(value || "").trim();
+  const match = ingredient.match(/^(.+?)\s+((?:\d+(?:[./]\d+)?\s*)?(?:kg|g|ml|l|개|알|장|쪽|줄기|컵|큰술|작은술|스푼|줌|토막|꼬집|공기|봉|팩|약간|적당량|조금).*)$/i);
+
+  return match
+    ? { name: match[1].trim(), amount: match[2].trim() }
+    : { name: ingredient, amount: "" };
+}
+
+function addMissingIngredientsToShoppingList(recipe) {
+  const missingIngredients = Array.isArray(recipe.missingIngredients) ? recipe.missingIngredients : [];
+
+  missingIngredients.forEach((ingredient) => {
+    const { name, amount } = splitShoppingIngredient(ingredient);
+    if (!name) {
+      return;
+    }
+
+    const key = name.toLocaleLowerCase().replace(/\s+/g, "");
+    let shoppingItem = shoppingItems.find((item) => item.key === key);
+    if (!shoppingItem) {
+      shoppingItem = { key, name, amounts: [], sources: [], checked: false };
+      shoppingItems.push(shoppingItem);
+    }
+
+    if (amount && !shoppingItem.amounts.includes(amount)) {
+      shoppingItem.amounts.push(amount);
+    }
+    if (!shoppingItem.sources.includes(recipe.name)) {
+      shoppingItem.sources.push(recipe.name);
+    }
+  });
+
+  saveShoppingItems();
+}
+
+function renderShoppingList() {
+  shoppingListItems.innerHTML = "";
+  const completedCount = shoppingItems.filter((item) => item.checked).length;
+  shoppingListCount.textContent = `${shoppingItems.length}개 · ${completedCount}개 구매 완료`;
+  clearCompletedShoppingButton.disabled = completedCount === 0;
+
+  if (!shoppingItems.length) {
+    const emptyState = document.createElement("li");
+    emptyState.className = "shopping-list-empty";
+    emptyState.textContent = "레시피에서 부족한 재료를 담아보세요.";
+    shoppingListItems.appendChild(emptyState);
+    return;
+  }
+
+  shoppingItems.forEach((item) => {
+    const row = document.createElement("li");
+    row.className = item.checked ? "shopping-item is-checked" : "shopping-item";
+
+    const itemLabel = document.createElement("label");
+    itemLabel.className = "shopping-item-label";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(item.checked);
+    checkbox.setAttribute("aria-label", `${item.name} 구매 완료`);
+    checkbox.addEventListener("change", () => {
+      shoppingItems = shoppingItems.map((shoppingItem) =>
+        shoppingItem.key === item.key ? { ...shoppingItem, checked: checkbox.checked } : shoppingItem
+      );
+      saveShoppingItems();
+    });
+
+    const name = document.createElement("span");
+    const amounts = Array.isArray(item.amounts) ? item.amounts : [];
+    name.textContent = `${item.name}${amounts.length ? ` (${amounts.join(" + ")})` : ""}`;
+
+    itemLabel.appendChild(checkbox);
+    itemLabel.appendChild(name);
+
+    const details = document.createElement("div");
+    details.className = "shopping-item-details";
+    const sources = document.createElement("small");
+    sources.textContent = `필요한 요리: ${(item.sources || []).join(", ") || "직접 추가"}`;
+    details.appendChild(sources);
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "btn shopping-remove-button";
+    removeButton.textContent = "삭제";
+    removeButton.setAttribute("aria-label", `${item.name} 장보기 항목 삭제`);
+    removeButton.addEventListener("click", () => {
+      shoppingItems = shoppingItems.filter((shoppingItem) => shoppingItem.key !== item.key);
+      saveShoppingItems();
+    });
+
+    row.appendChild(itemLabel);
+    row.appendChild(details);
+    row.appendChild(removeButton);
+    shoppingListItems.appendChild(row);
+  });
+}
+
+function clearCompletedShoppingItems() {
+  shoppingItems = shoppingItems.filter((item) => !item.checked);
+  saveShoppingItems();
 }
 
 loadData();

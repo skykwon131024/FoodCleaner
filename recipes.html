@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>푸드 클리너 - 요리 추천 결과</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <main class="container">
@@ -19,6 +19,17 @@
     <section class="card results-panel">
       <h2>사용한 재료</h2>
       <div id="ingredientSummary" class="tag-list"></div>
+
+      <section class="shopping-list-panel" aria-labelledby="shoppingListTitle">
+        <div class="shopping-list-header">
+          <div>
+            <h2 id="shoppingListTitle">장보기 목록</h2>
+            <p id="shoppingListCount" class="recipe-meta" aria-live="polite">0개</p>
+          </div>
+          <button id="clearCompletedShoppingButton" class="btn" type="button" disabled>구매 완료 지우기</button>
+        </div>
+        <ul id="shoppingListItems" class="shopping-list-items"></ul>
+      </section>
 
       <h2 class="top-gap">추천 요리</h2>
       <div class="recipe-controls">
@@ -43,6 +54,6 @@
     </section>
   </main>
 
-  <script src="recipes.js?v=2"></script>
+  <script src="recipes.js?v=3"></script>
 </body>
 </html>

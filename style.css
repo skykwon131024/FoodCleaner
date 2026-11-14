@@ -1149,6 +1149,91 @@ h1 {
   border-top: 1px solid #e0e4ea;
 }
 
+.shopping-list-panel {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #e0e4ea;
+}
+
+.shopping-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shopping-list-header h2 {
+  margin: 0 0 4px;
+}
+
+.shopping-list-header .btn,
+.shopping-remove-button,
+.shopping-list-action {
+  width: auto;
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+.shopping-list-items {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shopping-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e4ea;
+}
+
+.shopping-item-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  color: #1d2939;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.shopping-item-label input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: #0b6ef3;
+}
+
+.shopping-item-details {
+  grid-column: 1;
+  padding-left: 27px;
+  color: #667085;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.shopping-item.is-checked .shopping-item-label span {
+  color: #667085;
+  text-decoration: line-through;
+}
+
+.shopping-remove-button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.shopping-list-empty {
+  padding: 10px 0;
+  color: #667085;
+  font-size: 14px;
+}
+
 .recipe-hint {
   margin: 8px 0 0;
   color: #44556f;
