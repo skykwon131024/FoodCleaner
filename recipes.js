@@ -203,12 +203,23 @@ function renderRecipeCards() {
       toggleBookmark(recipe, bookmarkButton);
     });
 
+    const shareButton = document.createElement("button");
+    shareButton.type = "button";
+    shareButton.className = "btn bookmark-button";
+    shareButton.textContent = "공유하기";
+    shareButton.setAttribute("aria-label", `${recipe.name || "요리"} 레시피 복사`);
+    shareButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      copyRecipeText(recipe, shareButton);
+    });
+
     card.addEventListener("click", () => {
       card.classList.toggle("open");
     });
 
     card.appendChild(utilization);
     card.appendChild(bookmarkButton);
+    card.appendChild(shareButton);
     card.appendChild(title);
     card.appendChild(desc);
     card.appendChild(info);
@@ -381,6 +392,45 @@ function toggleBookmark(recipe, button) {
   const bookmarked = isBookmarked(recipe);
   button.textContent = bookmarked ? "★ 북마크 해제" : "☆ 북마크";
   button.setAttribute("aria-pressed", String(bookmarked));
+}
+
+function buildRecipeShareText(recipe) {
+  const lines = [
+    `[${recipe.name || "이름 없는 요리"}]`,
+    `소요 시간: ${recipe.time || "미정"} / 난이도: ${recipe.difficulty || "미정"}`,
+    "",
+    "재료",
+    ...(Array.isArray(recipe.ingredients) ? recipe.ingredients : []).map((item) => `- ${item}`),
+    "",
+    "조리방법",
+    ...(Array.isArray(recipe.steps) ? recipe.steps : []).map((step, index) => `${index + 1}. ${step}`)
+  ];
+  return lines.join("\n");
+}
+
+async function copyRecipeText(recipe, button) {
+  const text = buildRecipeShareText(recipe);
+  let copied = false;
+
+  try {
+    await navigator.clipboard.writeText(text);
+    copied = true;
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    copied = document.execCommand("copy");
+    textarea.remove();
+  }
+
+  button.textContent = copied ? "복사 완료" : "복사 실패";
+  setTimeout(() => {
+    button.textContent = "공유하기";
+  }, 1500);
 }
 
 function renderBookmarkList() {
