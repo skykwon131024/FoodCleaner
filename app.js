@@ -41,6 +41,7 @@ const ingredientInput = document.getElementById("ingredientInput");
 const addIngredientButton = document.getElementById("addIngredientButton");
 const recommendButton = document.getElementById("recommendButton");
 const recipeCountSelect = document.getElementById("recipeCountSelect");
+const resetPreferencesButton = document.getElementById("resetPreferencesButton");
 
 let selectedFile = null;
 let previewUrl = null;
@@ -288,10 +289,118 @@ function collectTastePreferences() {
   const style = document.getElementById("stylePreferenceInput").value.trim();
   const spiciness = document.getElementById("spicinessPreferenceInput").value.trim();
   const cookingTime = document.getElementById("cookingTimePreferenceInput").value.trim();
-  const allergies = document.getElementById("allergyPreferenceInput").value.trim();
+  const selectedAllergies = [...document.querySelectorAll('input[name="allergyPreset"]:checked')]
+    .map((input) => input.value);
+  const typedAllergies = document.getElementById("allergyPreferenceInput").value
+    .split(/[,，、;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const allergies = [...new Set([...selectedAllergies, ...typedAllergies])].join(", ");
   const dietaryRestrictions = document.getElementById("dietaryRestrictionsInput").value.trim();
 
   return { cuisine, style, spiciness, cookingTime, allergies, dietaryRestrictions };
+}
+
+const preferencesStorageKey = "foodCleanerPreferences";
+const preferenceTextFieldIds = [
+  "cuisinePreferenceInput",
+  "stylePreferenceInput",
+  "spicinessPreferenceInput",
+  "cookingTimePreferenceInput",
+  "allergyPreferenceInput",
+  "dietaryRestrictionsInput",
+];
+
+function loadSavedPreferences() {
+  try {
+    const storedPreferences = JSON.parse(localStorage.getItem(preferencesStorageKey) || "{}");
+    return storedPreferences && typeof storedPreferences === "object" ? storedPreferences : {};
+  } catch {
+    return {};
+  }
+}
+
+function restoreSavedPreferences() {
+  const saved = loadSavedPreferences();
+
+  preferenceTextFieldIds.forEach((id) => {
+    if (typeof saved[id] === "string") {
+      document.getElementById(id).value = saved[id];
+    }
+  });
+
+  if (Array.isArray(saved.allergyPresets)) {
+    document.querySelectorAll('input[name="allergyPreset"]').forEach((input) => {
+      input.checked = saved.allergyPresets.includes(input.value);
+    });
+  }
+
+  if (typeof saved.recipeCount === "string"
+    && [...recipeCountSelect.options].some((option) => option.value === saved.recipeCount)) {
+    recipeCountSelect.value = saved.recipeCount;
+  }
+}
+
+function saveCurrentPreferences() {
+  const preferences = {};
+  preferenceTextFieldIds.forEach((id) => {
+    preferences[id] = document.getElementById(id).value;
+  });
+  preferences.allergyPresets = [...document.querySelectorAll('input[name="allergyPreset"]:checked')]
+    .map((input) => input.value);
+  preferences.recipeCount = recipeCountSelect.value;
+
+  localStorage.setItem(preferencesStorageKey, JSON.stringify(preferences));
+}
+
+function resetSavedPreferences() {
+  localStorage.removeItem(preferencesStorageKey);
+
+  preferenceTextFieldIds.forEach((id) => {
+    document.getElementById(id).value = "";
+  });
+  document.querySelectorAll('input[name="allergyPreset"]').forEach((input) => {
+    input.checked = false;
+  });
+  recipeCountSelect.value = "5";
+  setStatus("저장된 선호를 초기화했습니다.", false);
+}
+
+const recommendationHistoryStorageKey = "foodCleanerRecommendationHistory";
+const recommendationHistoryLimit = 10;
+
+function loadRecommendationHistory() {
+  try {
+    const storedHistory = JSON.parse(localStorage.getItem(recommendationHistoryStorageKey) || "[]");
+    return Array.isArray(storedHistory) ? storedHistory : [];
+  } catch {
+    return [];
+  }
+}
+
+function getRecentRecipeNames() {
+  const names = loadRecommendationHistory()
+    .flatMap((entry) => (Array.isArray(entry.recipes) ? entry.recipes : []))
+    .map((recipe) => recipe?.name)
+    .filter((name) => typeof name === "string" && name.trim());
+
+  return [...new Set(names)].slice(0, 20);
+}
+
+function saveRecommendationHistory(data) {
+  if (!Array.isArray(data.recipes) || !data.recipes.length) {
+    return;
+  }
+
+  const entry = {
+    id: `${Date.now()}`,
+    createdAt: new Date().toISOString(),
+    ingredients: data.ingredients || [],
+    preferences: data.preferences || {},
+    recipes: data.recipes,
+  };
+  const history = [entry, ...loadRecommendationHistory()].slice(0, recommendationHistoryLimit);
+  localStorage.setItem(recommendationHistoryStorageKey, JSON.stringify(history));
 }
 
 async function requestRecipeRecommendation() {
@@ -315,6 +424,7 @@ async function requestRecipeRecommendation() {
         ingredients: recognizedIngredients,
         desiredCount,
         preferences: collectTastePreferences(),
+        recentRecipeNames: getRecentRecipeNames(),
       }),
     });
 
@@ -325,6 +435,7 @@ async function requestRecipeRecommendation() {
     }
 
     const data = await response.json();
+    saveRecommendationHistory(data);
     sessionStorage.setItem("foodCleanerRecommendations", JSON.stringify(data));
     window.location.href = "recipes.html";
   } catch (error) {
@@ -356,3 +467,10 @@ function dataUrlToFile(dataUrl, filename) {
 
   return new File([bytes], filename, { type: mime });
 }
+
+restoreSavedPreferences();
+document.querySelector(".taste-preferences").addEventListener("input", saveCurrentPreferences);
+document.querySelector(".taste-preferences").addEventListener("change", saveCurrentPreferences);
+recipeCountSelect.addEventListener("change", saveCurrentPreferences);
+resetPreferencesButton.addEventListener("click", resetSavedPreferences);
+

@@ -22,7 +22,12 @@ const SUPPORTED_STYLES = [
 const RESTRICTION_GROUPS = {
   "견과류": ["땅콩", "호두", "아몬드", "캐슈넛", "피스타치오", "헤이즐넛", "잣", "마카다미아"],
   "갑각류": ["새우", "게", "꽃게", "랍스터", "가재"],
-  "해산물": ["생선", "멸치", "새우", "게", "조개", "굴", "오징어", "문어", "액젓", "젓갈"],
+  "해산물": ["생선", "멸치", "새우", "게", "조개", "굴", "홍합", "전복", "가리비", "오징어", "문어", "액젓", "젓갈"],
+  "생선": ["해산물"],
+  "조개류": ["조개", "굴", "홍합", "전복", "가리비"],
+  "달걀": ["계란", "달걀"],
+  "대두": ["콩", "두부", "두유", "간장", "된장", "고추장", "콩나물", "콩기름"],
+  "참깨": ["참깨", "참기름", "깨소금", "깨"],
   "유제품": ["우유", "치즈", "버터", "생크림", "요거트", "요구르트", "연유", "분유"],
   "글루텐": ["밀", "밀가루", "보리", "호밀", "빵", "면", "국수", "파스타"],
   "육류": ["소고기", "쇠고기", "돼지고기", "닭고기", "오리고기", "양고기", "햄", "베이컨", "소시지", "고기", "육수", "사골"],
@@ -223,6 +228,7 @@ const server = http.createServer((req, res) => {
       .then(async (payload) => {
         const desiredCount = normalizeDesiredCount(payload?.desiredCount);
         const preferences = normalizePreferences(payload?.preferences);
+        const recentRecipeNames = normalizeRecentRecipeNames(payload?.recentRecipeNames);
 
         if (!isAzureConfigured()) {
           if (USE_MOCK_WHEN_NO_KEY) {
@@ -400,13 +406,15 @@ const server = http.createServer((req, res) => {
           return;
         }
 
-        const recipes = await recommendRecipesWithAi(ingredients, desiredCount, preferences);
+        const recipes = await recommendRecipesWithAi(ingredients, desiredCount, preferences, recentRecipeNames);
         sendJson(res, 200, {
           success: true,
           ingredients,
           preferences,
           recipes,
-          message: "요리 추천 생성 완료",
+          message: recipes.length
+            ? "요리 추천 생성 완료"
+            : "조건에 맞는 레시피를 찾지 못했습니다. 재료를 더 추가하거나 취향·제한 조건을 완화해 다시 시도해 주세요.",
         });
       })
       .catch((error) => {
@@ -474,14 +482,16 @@ async function recognizeIngredientsWithAi(imageDataUrl) {
   return ingredients.slice(0, 15);
 }
 
-async function recommendRecipesWithAi(ingredients, desiredCount, preferences) {
+async function recommendRecipesWithAi(ingredients, desiredCount, preferences, recentRecipeNames = []) {
   const cuisinePreference = preferences.cuisine ? JSON.stringify(preferences.cuisine) : "제한 없음";
   const stylePreference = preferences.style ? JSON.stringify(preferences.style) : "제한 없음";
   const spicinessPreference = preferences.spiciness ? JSON.stringify(preferences.spiciness) : "제한 없음";
   const cookingTimePreference = preferences.cookingTime ? JSON.stringify(preferences.cookingTime) : "시간 제한 없음";
   const prompt = [
-    `입력 재료로 만들 수 있는 요리 ${desiredCount}개를 추천하라.`,
+    `입력 재료를 최대한 활용할 수 있는 요리를 최대 ${desiredCount}개 추천하라.`,
     `입력 재료: ${ingredients.join(", ")}`,
+    "입력 재료만으로 만들 수 있는 요리로 한정하지 마라. 일반적인 조미료나 추가 재료가 필요한 요리도 추천하고, 보유하지 않은 필수 재료는 빠짐없이 requiredIngredients에 표시하라.",
+    "요리 후보가 요청 개수보다 적으면 가능한 수만 반환하라. 조건에 맞는 요리가 하나라도 있으면 빈 recipes 배열을 반환하지 마라.",
     `선호 음식 종류: ${cuisinePreference}`,
     `선호 요리 스타일: ${stylePreference}`,
     `선호 맵기: ${spicinessPreference}`,
@@ -500,9 +510,12 @@ async function recommendRecipesWithAi(ingredients, desiredCount, preferences) {
       ? ["시간이 부족한 사용자를 위해 총 예상 시간이 짧은 요리부터 빠른 순서대로 추천하라."]
       : []),
     "선택된 취향을 가능한 한 우선 반영하고, 선택하지 않은 항목은 제한으로 적용하지 마라.",
+    ...(recentRecipeNames.length
+      ? [`최근에 이미 추천한 요리(${recentRecipeNames.join(", ")})는 제외하고 다른 요리를 추천하라. 다른 요리가 조건상 전혀 없을 때만 예외로 포함하라.`]
+      : []),
     "반드시 JSON만 반환하라.",
     "각 레시피에 재료 목록(ingredients)과 조리 순서(steps)를 반드시 포함하라.",
-    `형식: {\"recipes\":[{\"name\":\"\",\"description\":\"\",\"time\":\"15분\",\"difficulty\":\"쉬움\",\"ingredients\":[\"계란 2개\",\"밀가루 1컵\"],\"requiredIngredients\":[\"계란 2개\",\"밀가루 1컵\"],\"optionalIngredients\":[\"파슬리 약간\"],\"steps\":[\"재료를 손질한다\",\"팬에 볶는다\"]}]} (recipes 길이 정확히 ${desiredCount})`,
+    `형식: {\"recipes\":[{\"name\":\"\",\"description\":\"\",\"time\":\"15분\",\"difficulty\":\"쉬움\",\"ingredients\":[\"계란 2개\",\"밀가루 1컵\"],\"requiredIngredients\":[\"계란 2개\",\"밀가루 1컵\"],\"optionalIngredients\":[\"파슬리 약간\"],\"steps\":[\"재료를 손질한다\",\"팬에 볶는다\"]}]} (recipes는 1개 이상 ${desiredCount}개 이하)`,
   ].join(" ");
 
   const content = await callOpenAi([{ type: "text", text: prompt }]);
@@ -591,7 +604,14 @@ function parseRestrictionTerms(value) {
 
 function expandRestrictionTerms(terms) {
   const expanded = new Set();
+  const visited = new Set();
   const addTerm = (term) => {
+    if (visited.has(term)) {
+      expanded.add(term);
+      return;
+    }
+
+    visited.add(term);
     const relatedTerms = RESTRICTION_GROUPS[term];
     if (relatedTerms) {
       relatedTerms.forEach(addTerm);
@@ -781,6 +801,19 @@ function shouldPrioritizeQuickly(preferences) {
 
 function sortRecipesByTime(recipes) {
   return [...recipes].sort((first, second) => parseRecipeTimeMinutes(first.time) - parseRecipeTimeMinutes(second.time));
+}
+
+function normalizeRecentRecipeNames(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const names = value
+    .filter((name) => typeof name === "string")
+    .map((name) => name.trim().slice(0, 50))
+    .filter(Boolean);
+
+  return [...new Set(names)].slice(0, 20);
 }
 
 function normalizeDesiredCount(value) {
